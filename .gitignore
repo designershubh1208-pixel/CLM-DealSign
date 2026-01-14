@@ -1,0 +1,52 @@
+# General
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+*.tmp
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Frontend (Next.js)
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+frontend/coverage/
+
+# Backend (Node.js)
+backend/dist/
+backend/coverage/
+backend/uploads/
+# Keep the uploads directory locally but ignore contents (optional, but good for cleanliness)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# AI Service (Python)
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/*.pyo
+ai-service/*.pyd
+ai-service/.pytest_cache/
+ai-service/.coverage
+ai-service/htmlcov/
+
+# Blockchain (Hardhat)
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
+blockchain/coverage/
+blockchain/coverage.json
+blockchain/ignored/
+
+# Local Testing Files
+test-contract.txt

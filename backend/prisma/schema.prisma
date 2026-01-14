@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  LEGAL
+  MANAGER
+  VIEWER
+}
+
+enum ContractType {
+  NDA
+  MSA
+  SLA
+  SOW
+  EMPLOYMENT
+  OTHER
+}
+
+enum ContractStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ClauseType {
+  PAYMENT
+  TERMINATION
+  LIABILITY
+  CONFIDENTIALITY
+  IP_RIGHTS
+  INDEMNIFICATION
+  OTHER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ActivityType {
+  UPLOADED
+  ANALYZED
+  APPROVED
+  REJECTED
+  VERIFIED
+  COMMENTED
+}
+
+// Models
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(VIEWER)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploads   Contract[] @relation("UploadedBy")
+  approvals Approval[]
+  comments  Comment[]
+  activities Activity[]
+}
+
+model Contract {
+  id            String         @id @default(uuid())
+  title         String
+  type          ContractType
+  status        ContractStatus @default(DRAFT)
+  
+  // File details
+  fileUrl       String
+  fileName      String
+  fileSize      Int
+  parties       String[]
+  
+  effectiveDate DateTime?
+  expiryDate    DateTime?
+  
+  summary       String?
+  riskScore     Float?         @default(0) // 0-100
+  
+  // Blockchain verification
+  isVerified    Boolean        @default(false)
+  blockchainHash String?
+  txHash        String?
+  blockNumber   Int?
+  verifiedAt    DateTime?
+  
+  // Relations
+  uploadedById  String
+  uploadedBy    User           @relation("UploadedBy", fields: [uploadedById], references: [id])
+  
+  clauses       Clause[]
+  risks         Risk[]
+  comments      Comment[]
+  approvals     Approval[]
+  activities    Activity[]
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Clause {
+  id         String     @id @default(uuid())
+  type       ClauseType
+  text       String
+  section    String
+  riskLevel  RiskLevel
+  
+  contractId String
+  contract   Contract   @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Risk {
+  id              String       @id @default(uuid())
+  severity        RiskSeverity
+  description     String
+  recommendation  String
+  clauseReference String?
+  
+  contractId      String
+  contract        Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  content    String
+  createdAt  DateTime @default(now())
+  
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id         String         @id @default(uuid())
+  status     ApprovalStatus @default(PENDING)
+  role       UserRole
+  comment    String?
+  decidedAt  DateTime?
+  
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  
+  contractId String
+  contract   Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String       @id @default(uuid())
+  type        ActivityType
+  description String
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  
+  contractId  String
+  contract    Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
