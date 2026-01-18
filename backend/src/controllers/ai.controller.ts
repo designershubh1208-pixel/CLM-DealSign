@@ -106,6 +106,11 @@ export class AIController {
         try {
             const { contractId, question } = req.body;
 
+            // Validate input
+            if (!question || typeof question !== 'string' || question.trim().length === 0) {
+                return res.status(400).json({ success: false, error: 'Question is required' });
+            }
+
             // Get contract
             const contract = await prisma.contract.findUnique({
                 where: { id: contractId },
@@ -121,6 +126,10 @@ export class AIController {
             // Parse document
             const documentText = await aiService.parseDocument(contract.fileUrl);
 
+            if (!documentText || !documentText.text || documentText.text.trim().length < 20) {
+                return res.status(422).json({ success: false, error: 'Contract text could not be parsed or is empty' });
+            }
+
             // Get answer
             const result = await aiService.askQuestion(documentText.text, question);
 
@@ -132,6 +141,39 @@ export class AIController {
                     confidence: result.confidence,
                 },
             });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * POST /api/ai/compare
+     * Compare two contract versions and return AI-identified clause changes
+     */
+    async compareContracts(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { contractAId, contractBId } = req.body;
+
+            if (!contractAId || !contractBId) {
+                return res.status(400).json({ success: false, error: 'Both contractAId and contractBId are required' });
+            }
+
+            // Fetch contracts
+            const contractA = await prisma.contract.findUnique({ where: { id: contractAId } });
+            const contractB = await prisma.contract.findUnique({ where: { id: contractBId } });
+
+            if (!contractA || !contractB) {
+                return res.status(404).json({ success: false, error: 'One or both contracts not found' });
+            }
+
+            // Parse both documents
+            const docA = await aiService.parseDocument(contractA.fileUrl);
+            const docB = await aiService.parseDocument(contractB.fileUrl);
+
+            // Ask AI service to compare
+            const compareResult = await aiService.compareContracts(docA.text, docB.text);
+
+            return res.json({ success: true, data: compareResult });
         } catch (error) {
             next(error);
         }

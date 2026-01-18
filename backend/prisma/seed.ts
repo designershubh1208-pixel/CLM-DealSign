@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import process from 'process';
+import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -49,13 +51,24 @@ async function main() {
         }
     });
 
-    // Create Contract
+    const demo = await prisma.user.create({
+        data: {
+            email: 'demo@dealsign.com',
+            name: 'Demo User',
+            password,
+            role: 'MANAGER',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo'
+        }
+    });
+
+    // Create Contract with absolute file path
+    const demoFilePath = path.resolve(__dirname, '../uploads/demo/service-agreement.pdf');
     const contract = await prisma.contract.create({
         data: {
             title: 'Service Agreement - Acme Corp',
             type: 'MSA',
             status: 'UNDER_REVIEW',
-            fileUrl: '/uploads/demo/service-agreement.pdf',
+            fileUrl: demoFilePath,
             fileName: 'service-agreement.pdf',
             fileSize: 1024 * 500,
             parties: ['DealSign Inc', 'Acme Corp'],

@@ -35,6 +35,23 @@ export const authenticate = async (
         }
 
         if (!token) {
+            // DEVELOPMENT ONLY: Allow requests without token for testing
+            if (env.NODE_ENV === 'development') {
+                console.warn('⚠️  Development mode: Request without authentication token');
+                // Create a temporary demo user for development
+                const demoUser = await prisma.user.findFirst({
+                    where: { email: 'demo@dealsign.com' },
+                    select: { id: true, role: true }
+                });
+
+                if (demoUser) {
+                    req.user = { id: demoUser.id, role: demoUser.role };
+                    console.log('✓ Using demo user:', demoUser.id);
+                    return next();
+                } else {
+                    console.error('❌ Demo user not found. Run: npm run db:seed');
+                }
+            }
             return next(new AppError('You are not logged in. Please log in to get access.', 401));
         }
 

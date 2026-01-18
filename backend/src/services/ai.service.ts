@@ -109,12 +109,52 @@ export class AIService {
     }
 
     /**
+     * Compare two contract texts and return changes identified by AI
+     */
+    async compareContracts(textA: string, textB: string): Promise<any> {
+        try {
+            const response = await axiosInstance.post('/compare-contracts', {
+                text_a: textA,
+                text_b: textB,
+            });
+            return response.data;
+        } catch (error: any) {
+            console.error('Contract comparison failed:', error.message);
+            throw new Error(`AI Service Error: ${error.message}`);
+        }
+    }
+
+    /**
      * Parse PDF/DOCX file to text
      */
     async parseDocument(filePath: string): Promise<{ text: string; pages: number; filename: string }> {
         try {
+            const path = require('path');
+
+            // Convert relative paths to absolute paths
+            let absolutePath = filePath;
+
+            // If it's already an absolute path (Windows or Unix), use it as-is
+            if (path.isAbsolute(filePath)) {
+                absolutePath = filePath;
+            } else {
+                // Relative path - resolve from current working directory (backend root)
+                absolutePath = path.resolve(process.cwd(), filePath);
+            }
+
+            // Verify file exists before attempting to read
+            if (!fs.existsSync(absolutePath)) {
+                // Try alternative path resolution if file not found
+                const altPath = path.resolve(process.cwd(), filePath.replace(/^\//, ''));
+                if (fs.existsSync(altPath)) {
+                    absolutePath = altPath;
+                } else {
+                    throw new Error(`File not found at: ${absolutePath} or ${altPath}`);
+                }
+            }
+
             const formData = new FormData();
-            formData.append('file', fs.createReadStream(filePath));
+            formData.append('file', fs.createReadStream(absolutePath));
 
             const response = await axiosInstance.post('/parse-document', formData, {
                 headers: formData.getHeaders(),

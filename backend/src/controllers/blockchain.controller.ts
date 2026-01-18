@@ -145,12 +145,25 @@ export class BlockchainController {
                 });
             }
 
-            const result = await blockchainService.verifyDocument(hash);
-
-            return res.json({
-                success: true,
-                data: result,
-            });
+            try {
+                const result = await blockchainService.verifyDocument(hash);
+                return res.json({
+                    success: true,
+                    data: result,
+                });
+            } catch (blockchainError: any) {
+                // If blockchain is not connected or contract not found, return not verified
+                console.warn('Blockchain verification failed:', blockchainError.message);
+                return res.json({
+                    success: true,
+                    data: {
+                        exists: false,
+                        registeredBy: null,
+                        timestamp: null,
+                        error: 'Blockchain verification unavailable. Contract may not be registered.'
+                    },
+                });
+            }
         } catch (error) {
             next(error);
         }

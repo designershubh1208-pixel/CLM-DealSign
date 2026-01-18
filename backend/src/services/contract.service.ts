@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { AppError } from '../utils/errors';
 import { ContractType, Prisma } from '@prisma/client';
+import path from 'path';
 
 export const findAll = async (
     page: number,
@@ -34,7 +35,30 @@ export const findAll = async (
         prisma.contract.count({ where }),
     ]);
 
-    return { contracts, total, page, limit, totalPages: Math.ceil(total / limit) };
+    // Map database contract objects to a client-friendly shape.
+    // Convert enums to lowercase strings expected by the frontend and
+    // derive a lightweight `riskLevel` from the numeric `riskScore`.
+    const determineRiskLevel = (score?: number) => {
+        if (score == null) return 'low';
+        if (score >= 75) return 'high';
+        if (score >= 40) return 'medium';
+        return 'low';
+    };
+
+    const mappedContracts = contracts.map((c) => ({
+        ...c,
+        // Prisma enums are uppercase (e.g. 'UNDER_REVIEW'). Frontend expects lowercase snake_case.
+        status: (c.status as any).toString().toLowerCase(),
+        // Derive a simple risk level for quick dashboard display.
+        riskLevel: determineRiskLevel(c.riskScore),
+        // Provide an `uploadDate` alias (frontend expects this field)
+        uploadDate: c.createdAt,
+        // Align blockchain fields naming
+        transactionHash: (c as any).txHash || null,
+        blockchainHash: (c as any).blockchainHash || null,
+    }));
+
+    return { contracts: mappedContracts, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
 export const findById = async (id: string) => {
@@ -54,7 +78,22 @@ export const findById = async (id: string) => {
         throw new AppError('Contract not found', 404);
     }
 
-    return contract;
+    // Normalize some fields for frontend consumption
+    const determineRiskLevel = (score?: number) => {
+        if (score == null) return 'low';
+        if (score >= 75) return 'high';
+        if (score >= 40) return 'medium';
+        return 'low';
+    };
+
+    return {
+        ...contract,
+        status: (contract.status as any).toString().toLowerCase(),
+        riskLevel: determineRiskLevel((contract as any).riskScore),
+        uploadDate: contract.createdAt,
+        transactionHash: (contract as any).txHash || null,
+        blockchainHash: (contract as any).blockchainHash || null,
+    };
 };
 
 export const create = async (
@@ -68,7 +107,9 @@ export const create = async (
         expiryDate?: string
     }
 ) => {
-    // Simulate file upload URL (in real app, upload to S3/Cloudinary)
+    // Store absolute file path for AI service to read
+    const absoluteFilePath = path.resolve(file.path);
+    // Also store relative URL for frontend/API access
     const fileUrl = `/uploads/${userId}/${file.filename}`;
 
     return prisma.contract.create({
@@ -76,7 +117,7 @@ export const create = async (
             title: data.title,
             type: data.type,
             status: 'DRAFT',
-            fileUrl,
+            fileUrl: absoluteFilePath,
             fileName: file.originalname,
             fileSize: file.size,
             parties: data.parties,

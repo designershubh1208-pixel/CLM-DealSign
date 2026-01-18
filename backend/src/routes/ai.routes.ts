@@ -8,5 +8,6 @@ router.use(authenticate);
 
 router.post('/analyze/:contractId', aiController.analyzeContract);
 router.post('/ask', aiController.askQuestion);
+router.post('/compare', aiController.compareContracts);
 
 export default router;

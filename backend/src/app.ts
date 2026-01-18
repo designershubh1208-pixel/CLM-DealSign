@@ -12,7 +12,14 @@ const app = express();
 
 // Security Middleware
 app.use(helmet());
-app.use(cors());
+
+// CORS Configuration - Allow frontend to make requests
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Rate Limiting
 const limiter = rateLimit({

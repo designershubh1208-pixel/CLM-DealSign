@@ -32,10 +32,10 @@ backend/uploads/*
 
 # AI Service (Python)
 ai-service/venv/
-ai-service/__pycache__/
-ai-service/*.pyc
-ai-service/*.pyo
-ai-service/*.pyd
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
 ai-service/.pytest_cache/
 ai-service/.coverage
 ai-service/htmlcov/
